@@ -722,5 +722,121 @@ This complete provenance chain ensures transparency, auditability, and confidenc
 
 ---
 
+## 14. Agent Registry
+
+### 14.1 Overview
+
+The ORION Agent Registry (`agents/orion_agent_registry.json`) is a centralized, machine-readable catalog of every AI agent in the ORION ecosystem. It serves as the single source of truth for agent configurations, runtime metadata, lifecycle tracking, and integration mapping — enabling cross-platform governance, auditing, and discovery of all agents regardless of where they are deployed.
+
+### 14.2 Registry Structure
+
+The registry file follows a standardized JSON format:
+
+```json
+{
+  "registry_name": "ORION Agent Registry",
+  "registry_version": "v1.0",
+  "created_at": "2026-02-14T12:42:30Z",
+  "total_agents": 8,
+  "agents": [ ... ]
+}
+```
+
+### 14.3 Agent Entry Schema
+
+Each agent entry contains the following sections:
+
+| Section | Fields | Purpose |
+|---|---|---|
+| **Identity** | `agent_name`, `version`, `role` | Unique identification and purpose description |
+| **Prompts** | `system_prompt` | Full system prompt text defining agent behavior |
+| **Schemas** | `input_schema`, `output_schema` | JSON Schema definitions for input/output contracts |
+| **Runtime** | `app`, `page_environment`, `trigger_schedule`, `model`, `tools_used`, `execution_mode` | Deployment context — where, when, and how the agent runs |
+| **Lifecycle** | `owner`, `status`, `last_updated` | Operational status and ownership tracking |
+| **Integration Map** | `upstream_inputs`, `downstream_outputs` | Data flow — what feeds into and out of this agent |
+| **Notes** | `notes` | Key behavioral details, thresholds, and caveats |
+
+### 14.4 Registered Agents
+
+The registry contains **8 agents** across two deployment contexts:
+
+**Pipeline Agents (6) — ORION External Agents Pipeline:**
+
+| # | Agent Name | Model | Execution Mode | Status |
+|---|---|---|---|---|
+| 1 | ORIONPATHFINDER | gpt-4o-mini | LLM call with code-based fallback | Active |
+| 2 | ORIONCOMPARATOR | gpt-4o-mini | LLM call with code-based fallback | Active |
+| 3 | ORIONSCORER | gpt-4o-mini | LLM call with code-based fallback | Active |
+| 4 | ORIONCURATOR | gpt-4o-mini | LLM call with code-based fallback | Active |
+| 5 | ORIONEXPORTER | None (code-based) | Code-based only | Active |
+| 6 | ORIONSYNTHESIZER | gpt-4o | LLM call (optional phase) | Active |
+
+**Platform Copilot Agents (2) — ORION Main App (Placeholders):**
+
+| # | Agent Name | Status | Notes |
+|---|---|---|---|
+| 7 | ORION_SCANNING_COPILOT | Placeholder | Environmental scanning chatbot — config to be populated from ORION platform |
+| 8 | ORION_GENERAL_COPILOT | Placeholder | General foresight exploration chatbot — config to be populated from ORION platform |
+
+### 14.5 Integration Mapping
+
+The registry captures the complete data flow between agents:
+
+```
+Sources (500) → Collector → PATHFINDER → COMPARATOR → SCORER → CURATOR → EXPORTER → CSV Files
+                                                                                        │
+                                                                              SYNTHESIZER → Forces
+```
+
+Each agent's `upstream_inputs` and `downstream_outputs` fields document exactly what data enters and leaves, enabling dependency analysis, impact assessment, and pipeline optimization.
+
+### 14.6 Use Cases
+
+- **Governance**: Track which models are used, by whom, and with what permissions
+- **Auditing**: Verify agent configurations match documented specifications
+- **Discovery**: Find agents by capability, model, or deployment context
+- **Migration**: Plan model upgrades by understanding agent dependencies
+- **Monitoring**: Identify active vs. deprecated agents across the ecosystem
+
+---
+
+## 15. Source Code Repository
+
+### 15.1 GitHub Repository
+
+The complete ORION External Agents Pipeline source code is hosted on GitHub:
+
+**Repository:** [https://github.com/soeirocarvalho/SCANNING_AGENTS](https://github.com/soeirocarvalho/SCANNING_AGENTS)
+
+### 15.2 Repository Contents
+
+The repository contains all pipeline source code, agent definitions, configuration files, and documentation:
+
+| Directory/File | Description |
+|---|---|
+| `src/` | Core Python modules (pipeline, collector, synthesis, export, etc.) |
+| `agents/` | Agent prompts (`prompts.json`) and registry (`orion_agent_registry.json`) |
+| `scripts/` | Utility scripts (schema validation, signal promotion) |
+| `inputs/` | Source library (`ORION_active_sources_top500.xlsx`) |
+| `docs/` | Technical documentation (this document + PDF version) |
+| `dashboard.py` | Streamlit web dashboard |
+| `start.py` | Startup entry point (dashboard + pipeline trigger) |
+| `run_daily.py` | CLI entry point for manual pipeline runs |
+| `scheduler.py` | APScheduler configuration for VM deployment mode |
+| `requirements.txt` | Python package dependencies |
+| `pyproject.toml` | Project metadata and UV package configuration |
+
+### 15.3 Large Files
+
+The following file is not included in the repository due to GitHub's file size limits:
+
+| File | Size | Description |
+|---|---|---|
+| `inputs/driving_forces.xlsx` | 64 MB | ORION corpus containing 3,000+ curated forces and 30,000+ signals |
+
+This file must be obtained separately and placed in the `inputs/` directory before running the pipeline. It serves as the comparison corpus for duplicate detection (Agent 2: COMPARATOR) and provides the reference dimensions, tags, and project ID used throughout the pipeline.
+
+---
+
 *ORION External Agents Pipeline — Automated Strategic Foresight Intelligence*
-*Version 1.0 — February 2026*
+*Version 1.1 — February 2026*
