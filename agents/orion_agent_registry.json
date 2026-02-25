@@ -1,0 +1,1344 @@
+{
+  "registry_name": "ORION Agent Registry",
+  "registry_version": "v1.0",
+  "created_at": "2026-02-14T12:42:30Z",
+  "total_agents": 8,
+  "agents": [
+    {
+      "agent_name": "ORIONPATHFINDER",
+      "version": "v1",
+      "role": "Extract 0..N candidate signals from a single crawled document.",
+      "system_prompt": "You are ORIONPATHFINDER. Your job is to read ONE document and extract up to 5 candidate signals.\nRules:\n- Output MUST be valid JSON only (no markdown).\n- If the document contains no meaningful change signal, return an empty candidates array.\n- Each candidate must be specific, falsifiable, and grounded in the document.\n- Keep evidence_snippet short (<=240 chars). Do not paste long copyrighted passages.\n- Default type_suggested is 'S'. Only suggest 'WS' or 'WC' if clearly justified.\n- proposed_steep must be one of: Social, Technological, Economic, Environmental.\n- proposed_dimension must be one of ORION's existing dimensions (provided in the user message).\n- proposed_tags should be 3\u20138 concise tags.\n",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "doc": {
+            "type": "object",
+            "properties": {
+              "doc_id": {
+                "type": "string"
+              },
+              "source_name": {
+                "type": "string"
+              },
+              "source_url": {
+                "type": "string"
+              },
+              "canonical_url": {
+                "type": "string"
+              },
+              "published_at": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "retrieved_at": {
+                "type": "string"
+              },
+              "clean_text": {
+                "type": "string"
+              },
+              "content_hash": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "doc_id",
+              "source_name",
+              "source_url",
+              "canonical_url",
+              "retrieved_at",
+              "clean_text",
+              "content_hash"
+            ],
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "doc"
+        ],
+        "additionalProperties": true
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "doc_id": {
+            "type": "string"
+          },
+          "candidates": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "candidate_id": {
+                  "type": "string"
+                },
+                "doc_id": {
+                  "type": "string"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "claim_summary": {
+                  "type": "string"
+                },
+                "why_it_matters": {
+                  "type": "string"
+                },
+                "proposed_tags": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "proposed_steep": {
+                  "type": "string"
+                },
+                "proposed_dimension": {
+                  "type": "string"
+                },
+                "type_suggested": {
+                  "type": "string"
+                },
+                "source_name": {
+                  "type": "string"
+                },
+                "canonical_url": {
+                  "type": "string"
+                },
+                "published_at": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "retrieved_at": {
+                  "type": "string"
+                },
+                "content_hash": {
+                  "type": "string"
+                },
+                "evidence_snippet": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "candidate_id",
+                "doc_id",
+                "title",
+                "claim_summary",
+                "why_it_matters",
+                "proposed_tags",
+                "proposed_steep",
+                "proposed_dimension",
+                "type_suggested",
+                "source_name",
+                "canonical_url",
+                "retrieved_at",
+                "content_hash",
+                "evidence_snippet"
+              ],
+              "additionalProperties": true
+            }
+          }
+        },
+        "required": [
+          "doc_id",
+          "candidates"
+        ],
+        "additionalProperties": true
+      },
+      "runtime": {
+        "app": "ORION External Agents Pipeline",
+        "page_environment": "Replit scheduled deployment",
+        "trigger_schedule": "Daily at 03:00 GMT (scheduled deployment) + on-demand CLI",
+        "model": "gpt-4o-mini",
+        "tools_used": [
+          "web_scraper"
+        ],
+        "execution_mode": "LLM call with code-based fallback"
+      },
+      "lifecycle": {
+        "owner": "ORION Platform Team",
+        "status": "active",
+        "last_updated": "2026-02-05"
+      },
+      "integration_map": {
+        "upstream_inputs": [
+          "Collected documents from 500 curated sources (RSS/web crawl)",
+          "ORION dimensions list (from driving_forces.xlsx)",
+          "ORION tag vocabulary (from driving_forces.xlsx)"
+        ],
+        "downstream_outputs": [
+          "Candidate signals array \u2192 passed to ORIONCOMPARATOR"
+        ]
+      },
+      "notes": "Extracts 0-5 candidate signals per document. First agent in the sequential pipeline."
+    },
+    {
+      "agent_name": "ORIONCOMPARATOR",
+      "version": "v1",
+      "role": "Summarize similarity evidence vs ORION corpus and determine max_similarity + nearest_orion_ids.",
+      "system_prompt": "You are ORIONCOMPARATOR. You receive ONE candidate plus its nearest neighbors from the ORION corpus.\nRules:\n- Output MUST be valid JSON only (no markdown).\n- Do not change candidate content; only add comparison results.\n- Compute max_similarity from neighbors. Provide nearest_orion_ids sorted by similarity (top 5).\n- If max_similarity >= 0.92, set duplicate_flag true.\n",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "candidate": {
+            "type": "object",
+            "properties": {
+              "candidate_id": {
+                "type": "string"
+              },
+              "doc_id": {
+                "type": "string"
+              },
+              "title": {
+                "type": "string"
+              },
+              "claim_summary": {
+                "type": "string"
+              },
+              "why_it_matters": {
+                "type": "string"
+              },
+              "proposed_tags": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "proposed_steep": {
+                "type": "string"
+              },
+              "proposed_dimension": {
+                "type": "string"
+              },
+              "type_suggested": {
+                "type": "string"
+              },
+              "source_name": {
+                "type": "string"
+              },
+              "canonical_url": {
+                "type": "string"
+              },
+              "published_at": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "retrieved_at": {
+                "type": "string"
+              },
+              "content_hash": {
+                "type": "string"
+              },
+              "evidence_snippet": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "candidate_id",
+              "doc_id",
+              "title",
+              "claim_summary",
+              "why_it_matters",
+              "proposed_tags",
+              "proposed_steep",
+              "proposed_dimension",
+              "type_suggested",
+              "source_name",
+              "canonical_url",
+              "retrieved_at",
+              "content_hash",
+              "evidence_snippet"
+            ],
+            "additionalProperties": true
+          },
+          "orion_nn": {
+            "type": "object",
+            "description": "Provided by tool call: nearest neighbors from ORION vector index.",
+            "properties": {
+              "neighbors": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "type": {
+                      "type": "string"
+                    },
+                    "scope": {
+                      "type": "string"
+                    },
+                    "similarity": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "similarity"
+                  ],
+                  "additionalProperties": true
+                }
+              }
+            },
+            "required": [
+              "neighbors"
+            ],
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "candidate",
+          "orion_nn"
+        ],
+        "additionalProperties": true
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "candidate_id": {
+            "type": "string"
+          },
+          "max_similarity": {
+            "type": "number"
+          },
+          "nearest_orion_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "duplicate_flag": {
+            "type": "boolean"
+          },
+          "comparison_rationale": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "candidate_id",
+          "max_similarity",
+          "nearest_orion_ids",
+          "duplicate_flag",
+          "comparison_rationale"
+        ],
+        "additionalProperties": true
+      },
+      "runtime": {
+        "app": "ORION External Agents Pipeline",
+        "page_environment": "Replit scheduled deployment",
+        "trigger_schedule": "Daily at 03:00 GMT (scheduled deployment) + on-demand CLI",
+        "model": "gpt-4o-mini",
+        "tools_used": [
+          "vector_index (Jaccard+Cosine similarity)"
+        ],
+        "execution_mode": "LLM call with code-based fallback"
+      },
+      "lifecycle": {
+        "owner": "ORION Platform Team",
+        "status": "active",
+        "last_updated": "2026-02-05"
+      },
+      "integration_map": {
+        "upstream_inputs": [
+          "Candidate signals from ORIONPATHFINDER",
+          "ORION corpus (driving_forces.xlsx) via vector index",
+          "Top 5 nearest neighbors with similarity scores"
+        ],
+        "downstream_outputs": [
+          "Comparison results (max_similarity, duplicate_flag, nearest_orion_ids) \u2192 passed to ORIONSCORER"
+        ]
+      },
+      "notes": "Duplicate detection threshold: 92% similarity. Uses Jaccard + Cosine lexical similarity index."
+    },
+    {
+      "agent_name": "ORIONSCORER",
+      "version": "v1",
+      "role": "Compute novelty/credibility/relevance/priority_index, assign decision, and compute importance_distance (1\u201310).",
+      "system_prompt": "You are ORIONSCORER.\nYou must return JSON only.\nCompute scores using the v1 rules:\n- Novelty: based on max_similarity (piecewise) with optional adjustments if justified.\n- Credibility: based on source_tier (A/B/C/D) + corroboration_count bonus + evidence quality.\n- Relevance: based on fit to ORION dimensions/tags/STEEP (be consistent and conservative).\n- priority_index = 0.45*relevance + 0.35*novelty + 0.20*credibility.\n- Apply gates: credibility<40 cap priority_index at 50; credibility<25 cap at 35.\n- If duplicate_flag true or max_similarity>=0.92, force importance_distance to 1 or 2 and decision to reject or review.\n- Map priority_index to importance_distance bins (1\u201310) exactly as specified.\nDecision thresholds:\n- accept if priority_index>=60 and credibility>=45 and duplicate_flag=false.\n- review if priority_index in [45..59] or credibility in [25..44] with strong novelty/relevance.\n- reject otherwise.\n",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "candidate": {
+            "type": "object",
+            "properties": {
+              "candidate_id": {
+                "type": "string"
+              },
+              "doc_id": {
+                "type": "string"
+              },
+              "title": {
+                "type": "string"
+              },
+              "claim_summary": {
+                "type": "string"
+              },
+              "why_it_matters": {
+                "type": "string"
+              },
+              "proposed_tags": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "proposed_steep": {
+                "type": "string"
+              },
+              "proposed_dimension": {
+                "type": "string"
+              },
+              "type_suggested": {
+                "type": "string"
+              },
+              "source_name": {
+                "type": "string"
+              },
+              "canonical_url": {
+                "type": "string"
+              },
+              "published_at": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "retrieved_at": {
+                "type": "string"
+              },
+              "content_hash": {
+                "type": "string"
+              },
+              "evidence_snippet": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "candidate_id",
+              "doc_id",
+              "title",
+              "claim_summary",
+              "why_it_matters",
+              "proposed_tags",
+              "proposed_steep",
+              "proposed_dimension",
+              "type_suggested",
+              "source_name",
+              "canonical_url",
+              "retrieved_at",
+              "content_hash",
+              "evidence_snippet"
+            ],
+            "additionalProperties": true
+          },
+          "comparison": {
+            "type": "object",
+            "properties": {
+              "candidate_id": {
+                "type": "string"
+              },
+              "max_similarity": {
+                "type": "number"
+              },
+              "nearest_orion_ids": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "duplicate_flag": {
+                "type": "boolean"
+              },
+              "comparison_rationale": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "candidate_id",
+              "max_similarity",
+              "nearest_orion_ids",
+              "duplicate_flag",
+              "comparison_rationale"
+            ],
+            "additionalProperties": true
+          },
+          "source_tier": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Tier A/B/C/D for the source; may be null."
+          },
+          "corroboration_count": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "How many independent sources corroborate; may be null."
+          }
+        },
+        "required": [
+          "candidate",
+          "comparison"
+        ],
+        "additionalProperties": true
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "candidate_id": {
+            "type": "string"
+          },
+          "novelty_score": {
+            "type": "number"
+          },
+          "credibility_score": {
+            "type": "number"
+          },
+          "relevance_score": {
+            "type": "number"
+          },
+          "priority_index": {
+            "type": "number"
+          },
+          "importance_distance": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10
+          },
+          "decision": {
+            "type": "string",
+            "enum": [
+              "accept",
+              "review",
+              "reject"
+            ]
+          },
+          "promotion_suggestion": {
+            "type": "string",
+            "enum": [
+              "none",
+              "WS",
+              "T",
+              "WC"
+            ]
+          },
+          "scoring_rationale": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "candidate_id",
+          "novelty_score",
+          "credibility_score",
+          "relevance_score",
+          "priority_index",
+          "importance_distance",
+          "decision",
+          "promotion_suggestion",
+          "scoring_rationale"
+        ],
+        "additionalProperties": true
+      },
+      "runtime": {
+        "app": "ORION External Agents Pipeline",
+        "page_environment": "Replit scheduled deployment",
+        "trigger_schedule": "Daily at 03:00 GMT (scheduled deployment) + on-demand CLI",
+        "model": "gpt-4o-mini",
+        "tools_used": [],
+        "execution_mode": "LLM call with code-based fallback (scoring formulas: priority_index = 0.45*relevance + 0.35*novelty + 0.20*credibility)"
+      },
+      "lifecycle": {
+        "owner": "ORION Platform Team",
+        "status": "active",
+        "last_updated": "2026-02-05"
+      },
+      "integration_map": {
+        "upstream_inputs": [
+          "Candidate signals from ORIONPATHFINDER",
+          "Comparison results from ORIONCOMPARATOR",
+          "Source tier (A/B/C/D) from source list"
+        ],
+        "downstream_outputs": [
+          "Scores (novelty, credibility, relevance, priority_index) + decision (accept/review/reject) \u2192 passed to ORIONCURATOR"
+        ]
+      },
+      "notes": "Decision thresholds: Accept \u226560 priority + \u226545 credibility; Review 45-59 priority; Reject <45 or duplicate."
+    },
+    {
+      "agent_name": "ORIONCURATOR",
+      "version": "v1",
+      "role": "Normalize taxonomy fields and produce ORION-row objects (20-column schema) + staging enrichment.",
+      "system_prompt": "You are ORIONCURATOR. Return JSON only.\nYou receive candidate content + comparison + scores. Your tasks:\n1) Normalize tags to a clean JSON array (3\u20138 tags).\n2) Ensure steep and dimension match allowed enums.\n3) Produce:\n   - orion_row: EXACT 20 fields matching driving_forces.xlsx schema.\n   - staging_row: same 20 fields plus scoring/audit fields.\nRules:\n- For v1, if decision=accept, set type='S' and scope='signals'.\n- impact: keep default 7.0 unless strong reason; ttm/sentiment can remain blank/Neutral.\n- magnitude: recommended priority_index/10 (0\u201310).\n- distance: must be importance_distance (1\u201310).\n- source: store canonical_url.\n- created_at and updated_at: ISO timestamp strings.\n- color_hex for S: #94A3B8.\n",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "candidate": {
+            "type": "object",
+            "properties": {
+              "candidate_id": {
+                "type": "string"
+              },
+              "doc_id": {
+                "type": "string"
+              },
+              "title": {
+                "type": "string"
+              },
+              "claim_summary": {
+                "type": "string"
+              },
+              "why_it_matters": {
+                "type": "string"
+              },
+              "proposed_tags": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "proposed_steep": {
+                "type": "string"
+              },
+              "proposed_dimension": {
+                "type": "string"
+              },
+              "type_suggested": {
+                "type": "string"
+              },
+              "source_name": {
+                "type": "string"
+              },
+              "canonical_url": {
+                "type": "string"
+              },
+              "published_at": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "retrieved_at": {
+                "type": "string"
+              },
+              "content_hash": {
+                "type": "string"
+              },
+              "evidence_snippet": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "candidate_id",
+              "doc_id",
+              "title",
+              "claim_summary",
+              "why_it_matters",
+              "proposed_tags",
+              "proposed_steep",
+              "proposed_dimension",
+              "type_suggested",
+              "source_name",
+              "canonical_url",
+              "retrieved_at",
+              "content_hash",
+              "evidence_snippet"
+            ],
+            "additionalProperties": true
+          },
+          "comparison": {
+            "type": "object",
+            "properties": {
+              "candidate_id": {
+                "type": "string"
+              },
+              "max_similarity": {
+                "type": "number"
+              },
+              "nearest_orion_ids": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "duplicate_flag": {
+                "type": "boolean"
+              },
+              "comparison_rationale": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "candidate_id",
+              "max_similarity",
+              "nearest_orion_ids",
+              "duplicate_flag",
+              "comparison_rationale"
+            ],
+            "additionalProperties": true
+          },
+          "scores": {
+            "type": "object",
+            "properties": {
+              "candidate_id": {
+                "type": "string"
+              },
+              "novelty_score": {
+                "type": "number"
+              },
+              "credibility_score": {
+                "type": "number"
+              },
+              "relevance_score": {
+                "type": "number"
+              },
+              "priority_index": {
+                "type": "number"
+              },
+              "importance_distance": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 10
+              },
+              "decision": {
+                "type": "string",
+                "enum": [
+                  "accept",
+                  "review",
+                  "reject"
+                ]
+              },
+              "promotion_suggestion": {
+                "type": "string",
+                "enum": [
+                  "none",
+                  "WS",
+                  "T",
+                  "WC"
+                ]
+              },
+              "scoring_rationale": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "candidate_id",
+              "novelty_score",
+              "credibility_score",
+              "relevance_score",
+              "priority_index",
+              "importance_distance",
+              "decision",
+              "promotion_suggestion",
+              "scoring_rationale"
+            ],
+            "additionalProperties": true
+          },
+          "project_id": {
+            "type": "string",
+            "description": "Project id to use in ORION append file."
+          }
+        },
+        "required": [
+          "candidate",
+          "comparison",
+          "scores",
+          "project_id"
+        ],
+        "additionalProperties": true
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "candidate_id": {
+            "type": "string"
+          },
+          "orion_row": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "project_id": {
+                "type": "string"
+              },
+              "title": {
+                "type": "string"
+              },
+              "type": {
+                "type": "string"
+              },
+              "steep": {
+                "type": "string"
+              },
+              "dimension": {
+                "type": "string"
+              },
+              "scope": {
+                "type": "string"
+              },
+              "impact": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "ttm": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "sentiment": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "source": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "tags": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "text": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "magnitude": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "distance": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "color_hex": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "feasibility": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "urgency": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "created_at": {
+                "type": "string"
+              },
+              "updated_at": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "project_id",
+              "title",
+              "type",
+              "steep",
+              "dimension",
+              "scope",
+              "created_at",
+              "updated_at"
+            ],
+            "additionalProperties": true
+          },
+          "staging_row": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "candidate_id",
+          "orion_row"
+        ],
+        "additionalProperties": true
+      },
+      "runtime": {
+        "app": "ORION External Agents Pipeline",
+        "page_environment": "Replit scheduled deployment",
+        "trigger_schedule": "Daily at 03:00 GMT (scheduled deployment) + on-demand CLI",
+        "model": "gpt-4o-mini",
+        "tools_used": [],
+        "execution_mode": "LLM call with code-based fallback"
+      },
+      "lifecycle": {
+        "owner": "ORION Platform Team",
+        "status": "active",
+        "last_updated": "2026-02-05"
+      },
+      "integration_map": {
+        "upstream_inputs": [
+          "Candidate signals from ORIONPATHFINDER",
+          "Comparison results from ORIONCOMPARATOR",
+          "Scores and decisions from ORIONSCORER",
+          "Project ID from ORION corpus"
+        ],
+        "downstream_outputs": [
+          "ORION-row objects (20-column schema) \u2192 passed to Export phase",
+          "Staging rows with audit metadata \u2192 passed to Export phase"
+        ]
+      },
+      "notes": "Normalizes taxonomy (STEEP, dimension, tags) and produces schema-locked 20-column ORION rows."
+    },
+    {
+      "agent_name": "ORIONEXPORTER",
+      "version": "v1",
+      "role": "Prepare export manifests and ensure schema correctness before writing files (actual write is handled by code).",
+      "system_prompt": "You are ORIONEXPORTER. Return JSON only.\nYou receive a run_id, date, and list of processed rows (each with decision and orion_row).\nTasks:\n1) Report output file paths.\n2) Count accept/review/reject.\n3) Validate orion_row schema if possible.\n",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "run_id": {
+            "type": "string"
+          },
+          "date": {
+            "type": "string"
+          },
+          "rows": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "decision": {
+                  "type": "string"
+                },
+                "orion_row": {
+                  "type": "object"
+                }
+              },
+              "required": [
+                "decision",
+                "orion_row"
+              ],
+              "additionalProperties": true
+            }
+          }
+        },
+        "required": [
+          "run_id",
+          "date",
+          "rows"
+        ],
+        "additionalProperties": true
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "run_id": {
+            "type": "string"
+          },
+          "outputs": {
+            "type": "object",
+            "properties": {
+              "staging_file": {
+                "type": "string"
+              },
+              "append_file": {
+                "type": "string"
+              },
+              "review_file": {
+                "type": "string"
+              },
+              "reject_file": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "staging_file",
+              "append_file",
+              "review_file",
+              "reject_file"
+            ],
+            "additionalProperties": true
+          },
+          "counts": {
+            "type": "object",
+            "properties": {
+              "total": {
+                "type": "integer"
+              },
+              "accept": {
+                "type": "integer"
+              },
+              "review": {
+                "type": "integer"
+              },
+              "reject": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "total",
+              "accept",
+              "review",
+              "reject"
+            ],
+            "additionalProperties": true
+          },
+          "schema_validation": {
+            "type": "object",
+            "properties": {
+              "valid": {
+                "type": "boolean"
+              },
+              "errors": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": [
+              "valid",
+              "errors"
+            ],
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "run_id",
+          "outputs",
+          "counts",
+          "schema_validation"
+        ],
+        "additionalProperties": true
+      },
+      "runtime": {
+        "app": "ORION External Agents Pipeline",
+        "page_environment": "Replit scheduled deployment",
+        "trigger_schedule": "Daily at 03:00 GMT (scheduled deployment) + on-demand CLI",
+        "model": "none (code-based)",
+        "tools_used": [
+          "csv_writer",
+          "schema_validator"
+        ],
+        "execution_mode": "Code-based only (agent definition exists in prompts.json but LLM is not called in current implementation)"
+      },
+      "lifecycle": {
+        "owner": "ORION Platform Team",
+        "status": "active",
+        "last_updated": "2026-02-05"
+      },
+      "integration_map": {
+        "upstream_inputs": [
+          "All processed ORION-row objects from ORIONCURATOR",
+          "Decision classifications from ORIONSCORER"
+        ],
+        "downstream_outputs": [
+          "out/{date}/orion_daily_all_candidates.csv",
+          "out/{date}/orion_daily_accepted.csv",
+          "out/{date}/orion_daily_pending_review.csv",
+          "out/{date}/orion_daily_rejected.csv",
+          "out/{date}/collector_report.json",
+          "out/orion_master.csv (cumulative append)"
+        ]
+      },
+      "notes": "Handles schema validation, importance calibration, file writing, and master file appending. Deterministic code \u2014 no LLM call."
+    },
+    {
+      "agent_name": "ORIONSYNTHESIZER",
+      "version": "v1",
+      "role": "Cluster accepted signals by theme, classify clusters as force types (MT/T/WS/WC), and synthesize curated force descriptions.",
+      "system_prompt": "You are ORIONSYNTHESIZER. Return JSON only.\nYou receive a batch of accepted signals. Your tasks:\n1) Group signals into thematic clusters (max 10 clusters).\n2) For each cluster, classify its force type:\n   - MT (Megatrend): Large-scale, long-term transformative change affecting multiple domains.\n   - T (Trend): Observable pattern of change with clear momentum.\n   - WS (Weak Signal): Early indicator of potential change, emerging and uncertain.\n   - WC (Wildcard): Low-probability, high-impact event or discontinuity.\n3) Synthesize ONE curated force per cluster with:\n   - A descriptive title\n   - A synthesized text summarizing the theme\n   - Normalized STEEP, dimension, and tags\n   - source_signal_ids: list of signal IDs that contributed\nRules:\n- Be conservative: only output forces with clear thematic coherence.\n- Prefer fewer, higher-quality forces over many weak ones.\n- If signals don't cluster well, output fewer forces.\n- A single signal can justify a Weak Signal (WS) force if it's truly novel.\n- Each force must trace back to at least 1 signal.\n",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "signals": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "text": {
+                  "type": "string"
+                },
+                "steep": {
+                  "type": "string"
+                },
+                "dimension": {
+                  "type": "string"
+                },
+                "tags": {
+                  "type": "string"
+                },
+                "source": {
+                  "type": "string"
+                },
+                "priority_index": {
+                  "type": "number"
+                },
+                "created_at": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "title",
+                "text",
+                "steep",
+                "dimension"
+              ],
+              "additionalProperties": true
+            }
+          },
+          "existing_forces": {
+            "type": "array",
+            "description": "Existing curated forces for deduplication reference.",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "type": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "title",
+                "type"
+              ],
+              "additionalProperties": true
+            }
+          },
+          "project_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "signals",
+          "project_id"
+        ],
+        "additionalProperties": true
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "forces": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "force_id": {
+                  "type": "string"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "type": {
+                  "type": "string",
+                  "enum": [
+                    "MT",
+                    "T",
+                    "WS",
+                    "WC"
+                  ]
+                },
+                "steep": {
+                  "type": "string"
+                },
+                "dimension": {
+                  "type": "string"
+                },
+                "tags": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "text": {
+                  "type": "string"
+                },
+                "source_signal_ids": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "synthesis_rationale": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "force_id",
+                "title",
+                "type",
+                "steep",
+                "dimension",
+                "tags",
+                "text",
+                "source_signal_ids",
+                "synthesis_rationale"
+              ],
+              "additionalProperties": true
+            }
+          },
+          "cluster_summary": {
+            "type": "object",
+            "properties": {
+              "total_signals": {
+                "type": "integer"
+              },
+              "clusters_formed": {
+                "type": "integer"
+              },
+              "forces_output": {
+                "type": "integer"
+              },
+              "unclustered_signals": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "total_signals",
+              "clusters_formed",
+              "forces_output"
+            ],
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "forces",
+          "cluster_summary"
+        ],
+        "additionalProperties": true
+      },
+      "runtime": {
+        "app": "ORION External Agents Pipeline",
+        "page_environment": "Replit scheduled deployment",
+        "trigger_schedule": "Daily at 03:00 GMT (optional, enabled with --synthesize flag)",
+        "model": "gpt-4o (configurable via OPENAI_SYNTHESIZER_MODEL env var)",
+        "tools_used": [],
+        "execution_mode": "LLM call (optional phase, runs only when synthesis is enabled)"
+      },
+      "lifecycle": {
+        "owner": "ORION Platform Team",
+        "status": "active",
+        "last_updated": "2026-02-06"
+      },
+      "integration_map": {
+        "upstream_inputs": [
+          "Accepted signals from current run + master file",
+          "Existing curated forces for deduplication (out/orion_forces_master.csv)",
+          "Project ID from ORION corpus"
+        ],
+        "downstream_outputs": [
+          "out/{date}/orion_forces_all_candidates.csv",
+          "out/{date}/orion_forces_accepted.csv",
+          "out/orion_forces_master.csv (cumulative append)"
+        ]
+      },
+      "notes": "Clusters signals into thematic groups and synthesizes strategic forces (MT/T/WS/WC). Uses GPT-4o for higher quality."
+    },
+    {
+      "agent_name": "ORION_SCANNING_COPILOT",
+      "version": "TODO",
+      "role": "Allows users to perform environmental scanning using the ORION curated database of 3000+ forces and 30000+ signals.",
+      "system_prompt": "TODO \u2014 retrieve from ORION platform app",
+      "input_schema": "TODO \u2014 retrieve from ORION platform app",
+      "output_schema": "TODO \u2014 retrieve from ORION platform app",
+      "runtime": {
+        "app": "ORION Platform (main app)",
+        "page_environment": "TODO \u2014 e.g. Scanning page / chatbot interface",
+        "trigger_schedule": "User-initiated (chat interaction)",
+        "model": "TODO \u2014 e.g. gpt-4o / gpt-4o-mini",
+        "tools_used": [
+          "TODO \u2014 e.g. vector_search, database_query"
+        ],
+        "execution_mode": "TODO \u2014 e.g. Assistants API / Responses API"
+      },
+      "lifecycle": {
+        "owner": "ORION Platform Team",
+        "status": "active",
+        "last_updated": "TODO"
+      },
+      "integration_map": {
+        "upstream_inputs": [
+          "ORION curated forces database (3000+ forces)",
+          "ORION signals database (30000+ signals)",
+          "User scanning query"
+        ],
+        "downstream_outputs": [
+          "Scanning results presented to user",
+          "TODO \u2014 any storage/export"
+        ]
+      },
+      "notes": "Placeholder \u2014 populate from ORION platform app config files."
+    },
+    {
+      "agent_name": "ORION_GENERAL_COPILOT",
+      "version": "TODO",
+      "role": "General-purpose copilot that assists users with foresight exploration, leveraging the ORION database and broader model knowledge.",
+      "system_prompt": "TODO \u2014 retrieve from ORION platform app",
+      "input_schema": "TODO \u2014 retrieve from ORION platform app",
+      "output_schema": "TODO \u2014 retrieve from ORION platform app",
+      "runtime": {
+        "app": "ORION Platform (main app)",
+        "page_environment": "TODO \u2014 e.g. Copilot page / chatbot interface",
+        "trigger_schedule": "User-initiated (chat interaction)",
+        "model": "TODO \u2014 e.g. gpt-4o / gpt-4o-mini",
+        "tools_used": [
+          "TODO \u2014 e.g. vector_search, web_search, database_query"
+        ],
+        "execution_mode": "TODO \u2014 e.g. Assistants API / Responses API"
+      },
+      "lifecycle": {
+        "owner": "ORION Platform Team",
+        "status": "active",
+        "last_updated": "TODO"
+      },
+      "integration_map": {
+        "upstream_inputs": [
+          "ORION curated forces database",
+          "ORION signals database",
+          "User query / conversation history"
+        ],
+        "downstream_outputs": [
+          "Chat responses to user",
+          "TODO \u2014 any storage/export"
+        ]
+      },
+      "notes": "Placeholder \u2014 populate from ORION platform app config files."
+    }
+  ]
+}

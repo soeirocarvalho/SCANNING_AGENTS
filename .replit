@@ -1,0 +1,46 @@
+modules = ["python-3.11"]
+[agent]
+expertMode = true
+integrations = ["python_openai_ai_integrations:1.0.0", "web_scraper:1.0.0", "github:1.0.0"]
+
+[nix]
+channel = "stable-25_05"
+packages = ["fontconfig", "ghostscript", "glib", "glibcLocales", "gobject-introspection", "harfbuzz", "pango", "xcodebuild", "zlib"]
+
+[workflows]
+runButton = "Project"
+
+[[workflows.workflow]]
+name = "Project"
+mode = "parallel"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Signal Review Dashboard"
+
+[[workflows.workflow]]
+name = "Signal Review Dashboard"
+author = "agent"
+
+[workflows.workflow.metadata]
+outputType = "webview"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "python start.py"
+waitForPort = 5000
+
+[deployment]
+deploymentTarget = "vm"
+run = ["python", "start.py"]
+
+[[ports]]
+localPort = 5000
+externalPort = 80
+
+[userenv]
+
+[userenv.shared]
+ORION_SCHEDULE_HOUR = "6"
+ORION_SCHEDULE_MINUTE = "0"
